@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Email Truncation Checker</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  width: 400px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  background: #f8f9fa;
+  color: #1a1a2e;
+  font-size: 13px;
+}
+.header {
+  background: white; padding: 11px 14px 9px;
+  border-bottom: 1px solid #e8eaed;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+.header-title .dot { color: #EA4335; }
+.header-sub { font-size: 10px; color: #aaa; margin-top: 1px; }
+
+.inputs {
+  background: white; border-bottom: 1px solid #e8eaed;
+  padding: 10px 14px 12px;
+}
+.sender-row { margin-bottom: 8px; }
+.field-label { font-size: 10px; color: #888; margin-bottom: 3px; display: flex; justify-content: space-between; }
+.char-pill { font-weight: 600; color: #1a1a2e; }
+.sender-input {
+  width: 100%; border: 1.5px solid #e8eaed; border-radius: 6px;
+  padding: 6px 9px; font-size: 12px; font-family: inherit;
+  height: 30px; outline: none; color: #1a1a2e;
+}
+.sender-input:focus { border-color: #4285F4; }
+.text-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+textarea {
+  width: 100%; border: 1.5px solid #e8eaed; border-radius: 6px;
+  padding: 6px 9px; font-size: 12px; font-family: inherit;
+  resize: none; height: 52px; outline: none; color: #1a1a2e; line-height: 1.4;
+}
+textarea:focus { border-color: #4285F4; }
+textarea::placeholder { color: #ccc; }
+.paste-hint { font-size: 10px; color: #aaa; margin-top: 5px; }
+.paste-hint.selected { color: #34A853; font-weight: 500; }
+
+.results-list { padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+
+.client-card {
+  background: white; border: 1px solid #e8eaed; border-radius: 10px;
+  overflow: hidden;
+}
+.client-card-header {
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid #f0f2f5;
+  display: flex; align-items: center; gap: 6px;
+}
+.client-card-name { font-size: 12px; font-weight: 700; color: #1a1a2e; }
+.device-badge { font-size: 9px; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+.device-mobile { background: #e8f0fe; color: #1a73e8; }
+.device-desktop { background: #f0f4ff; color: #5f6ab9; }
+
+.inbox-mock {
+  padding: 7px 12px 6px;
+  border-bottom: 1px solid #f0f2f5;
+}
+.mock-sender { font-size: 12px; font-weight: 700; color: #202124; margin-bottom: 2px; }
+.mock-line { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mock-subject { font-weight: 500; color: #202124; }
+.mock-sep { color: #9aa0a6; }
+.mock-prev { color: #5f6368; }
+.mock-cut { color: #EA4335; }
+.mock-subject-line { font-weight: 500; color: #202124; }
+.mock-preview-line { color: #5f6368; }
+
+.status-rows { padding: 6px 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+.status-row { display: flex; align-items: center; justify-content: space-between; }
+.status-field { font-size: 11px; color: #888; }
+.status-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+}
+.badge-green { background: #e6f4ea; color: #137333; }
+.badge-orange { background: #fef3e2; color: #b06000; }
+.badge-red { background: #fce8e6; color: #c5221f; }
+
+.empty-state { text-align: center; padding: 24px; color: #ccc; font-size: 12px; }
+.empty-state .em { font-size: 22px; display: block; margin-bottom: 8px; }
+
+.footer {
+  background: white; border-top: 1px solid #e8eaed;
+  padding: 9px 14px; display: flex; align-items: center; justify-content: space-between;
+}
+.footer-name { font-size: 11px; color: #888; }
+.footer-name a { color: #4285F4; text-decoration: none; font-weight: 500; }
+.footer-name a:hover { text-decoration: underline; }
+.footer-sge a { font-size: 10px; color: #aaa; text-decoration: none; }
+.footer-sge a:hover { color: #4285F4; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title"><span class="dot">📨</span> Subject Line Checker</div>
+    <div class="header-sub">Check before you send</div>
+  </div>
+</div>
+
+<div class="inputs">
+  <div class="sender-row">
+    <div class="field-label"><span>Sender name</span></div>
+    <input type="text" class="sender-input" id="sender-input" placeholder="e.g. Metricool" value="Your Brand">
+  </div>
+  <div class="text-row">
+    <div>
+      <div class="field-label"><span>Subject line</span><span class="char-pill" id="cc-s">0</span></div>
+      <textarea id="inp-subject" placeholder="Your subject line…"></textarea>
+    </div>
+    <div>
+      <div class="field-label"><span>Preview text</span><span class="char-pill" id="cc-p">0</span></div>
+      <textarea id="inp-preview" placeholder="Your preview text…"></textarea>
+    </div>
+  </div>
+  <div class="paste-hint" id="paste-hint">💡 Select text on any page before opening to auto-fill</div>
+</div>
+
+<div class="results-list" id="results-list">
+  <div class="empty-state"><span class="em">📬</span>Fill in the fields above to check truncation</div>
+</div>
+
+<script src="popup.js"></script>
+
+<div class="footer">
+  <span class="footer-name">by <a href="https://david.sendgoodemails.com" target="_blank">David Bustos</a></span>
+  <span class="footer-sge"><a href="https://www.sendgoodemails.com" target="_blank">sendgoodemails.com</a></span>
+</div>
+</body>
+</html>
