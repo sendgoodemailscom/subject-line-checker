@@ -22,12 +22,53 @@ const CLIENTS = [
     inbox: { combined: false, subjMax: 42, prevMax: 42 } },
 ];
 
-function rlen(t) { return [...(t||'')].length; }
+// ── Width-aware sizing ───────────────────────────────────────────────────────
+// Inboxes truncate by PIXEL WIDTH, not character count — a "W" is far wider than
+// an "l". So rather than counting characters, we measure the rendered width of
+// the text (canvas measureText) in each client's font and divide by the average
+// character width for that font. That yields an "effective character" length:
+// skinny text (illil) counts for less, wide text (WMQ@) for more, and emoji are
+// measured at their true width. The researched per-client limits above stay as
+// the calibration, so typical text behaves as before while narrow/wide text is
+// judged the way a real inbox actually renders it.
+const FONTS = {
+  'Gmail':      'Roboto, Arial, sans-serif',
+  'Apple Mail': '-apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif',
+  'Outlook':    '"Segoe UI", Helvetica, Arial, sans-serif',
+  'Yahoo Mail': 'Helvetica, Arial, sans-serif',
+};
+const MEASURE_PX = 14;
+// Mixed-case sample (letters, digits, spaces, punctuation) ≈ a typical subject
+// line — defines the "average character" width the limits are calibrated to.
+const SAMPLE = 'The Quick Brown Fox Jumps Over 5 Lazy Dogs and 2 Cats! ';
 
-function trunc(t, max) {
-  const c = [...(t||'')];
-  if (c.length <= max) return { vis: t||'', cut: '' };
-  return { vis: c.slice(0,max).join(''), cut: c.slice(max).join('') };
+const _ctx = document.createElement('canvas').getContext('2d');
+const _avg = {};
+function famFor(name) { return FONTS[name] || 'Arial, sans-serif'; }
+function measure(text, fam) { _ctx.font = MEASURE_PX + 'px ' + fam; return _ctx.measureText(text || '').width; }
+function avgCharW(fam) {
+  if (_avg[fam] == null) _avg[fam] = measure(SAMPLE, fam) / [...SAMPLE].length;
+  return _avg[fam];
+}
+// Effective length of `text` in average-characters, for a given client's font.
+function effLen(text, name) {
+  if (!text) return 0;
+  const fam = famFor(name);
+  return measure(text, fam) / avgCharW(fam);
+}
+// Raw Unicode character count — shown to the user as "characters typed".
+function rlen(t) { return [...(t || '')].length; }
+
+// Truncate `text` so its effective length fits `budget` average-characters.
+function truncEff(text, budget, name) {
+  if (effLen(text, name) <= budget) return { vis: text || '', cut: '' };
+  const chars = [...(text || '')];
+  let lo = 0, hi = chars.length;
+  while (lo < hi) {                                   // largest prefix that still fits
+    const mid = Math.ceil((lo + hi) / 2);
+    if (effLen(chars.slice(0, mid).join(''), name) <= budget) lo = mid; else hi = mid - 1;
+  }
+  return { vis: chars.slice(0, lo).join(''), cut: chars.slice(lo).join('') };
 }
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -48,9 +89,11 @@ function inboxMockHtml(c, sender, subject, preview) {
   const ix = c.inbox;
 
   if (ix.combined) {
-    const st = trunc(subject, ix.subjMax);
-    const rem = Math.max(0, ix.combinedMax - rlen(st.vis) - 3);
-    const pt  = trunc(preview, rem);
+    // Gmail: "Subject — Preview" on one line
+    const st = truncEff(subject, ix.subjMax, c.name);
+    const sepEff = effLen(' — ', c.name);
+    const rem = Math.max(0, ix.combinedMax - effLen(st.vis, c.name) - sepEff);
+    const pt  = truncEff(preview, rem, c.name);
     return '<div class="inbox-mock">' +
       '<div class="mock-sender">' + sn + '</div>' +
       '<div class="mock-line">' +
@@ -60,8 +103,9 @@ function inboxMockHtml(c, sender, subject, preview) {
       '</div>' +
     '</div>';
   } else {
-    const st = trunc(subject, ix.subjMax);
-    const pt  = trunc(preview,  ix.prevMax);
+    // Apple / Outlook / Yahoo: two separate lines
+    const st = truncEff(subject, ix.subjMax, c.name);
+    const pt = truncEff(preview,  ix.prevMax, c.name);
     return '<div class="inbox-mock">' +
       '<div class="mock-sender">' + sn + '</div>' +
       '<div class="mock-line mock-subject-line">' + esc(st.vis) + (st.cut ? '<span class="mock-cut">…</span>' : '') + '</div>' +
@@ -73,18 +117,16 @@ function inboxMockHtml(c, sender, subject, preview) {
 function render(sender, subject, preview) {
   const el = document.getElementById('results-list');
   if (!subject && !preview) {
-    el.innerHTML = '<div class="empty-state"><span class="em">📬</span>Fill in the fields above to check truncation</div>';
+    el.innerHTML = '<div class="empty-state"><span class="em"><span class="body"></span><span class="flap"></span></span>Fill in the fields above to check truncation</div>';
     return;
   }
 
   let html = '';
   for (const c of CLIENTS) {
-    const sn  = rlen(subject);
-    const pn  = rlen(preview);
-    const sst = statusOf(sn, c.subj.safe, c.subj.max);
-    const pst = statusOf(pn, c.prev.safe, c.prev.max);
+    const sst = statusOf(effLen(subject, c.name), c.subj.safe, c.subj.max);
+    const pst = statusOf(effLen(preview, c.name), c.prev.safe, c.prev.max);
     const dc  = c.device === 'mobile' ? 'device-mobile' : 'device-desktop';
-    const dl  = c.device === 'mobile' ? '📱 Mobile' : '🖥 Desktop';
+    const dl  = c.device === 'mobile' ? 'Mobile' : 'Desktop';
 
     html += '<div class="client-card">' +
       '<div class="client-card-header">' +
