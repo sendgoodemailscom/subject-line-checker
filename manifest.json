@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Subject Line Checker",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Check subject line & preview text truncation across Gmail, Apple Mail, Outlook and Yahoo before you send.",
   "permissions": [
     "activeTab"
