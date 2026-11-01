@@ -1,25 +1,24 @@
-const CLIENTS = [
-  { name: 'Gmail',      device: 'mobile',
-    subj: { safe: 43, max: 50 }, prev: { safe: 40, max: 55 },
-    inbox: { combined: true,  subjMax: 43, combinedMax: 55 } },
-  { name: 'Gmail',      device: 'desktop',
-    subj: { safe: 70, max: 88 }, prev: { safe: 90, max: 120 },
-    inbox: { combined: true,  subjMax: 70, combinedMax: 100 } },
-  { name: 'Apple Mail', device: 'mobile',
-    subj: { safe: 44, max: 54 }, prev: { safe: 44, max: 58 },
-    inbox: { combined: false, subjMax: 44, prevMax: 44 } },
-  { name: 'Apple Mail', device: 'desktop',
-    subj: { safe: 65, max: 85 }, prev: { safe: 60, max: 80 },
-    inbox: { combined: false, subjMax: 65, prevMax: 60 } },
-  { name: 'Outlook',    device: 'mobile',
-    subj: { safe: 46, max: 52 }, prev: { safe: 38, max: 52 },
-    inbox: { combined: false, subjMax: 46, prevMax: 38 } },
-  { name: 'Outlook',    device: 'desktop',
-    subj: { safe: 46, max: 53 }, prev: { safe: 38, max: 58 },
-    inbox: { combined: false, subjMax: 46, prevMax: 38 } },
-  { name: 'Yahoo Mail', device: 'mobile',
-    subj: { safe: 42, max: 48 }, prev: { safe: 42, max: 58 },
-    inbox: { combined: false, subjMax: 42, prevMax: 42 } },
+// One entry per provider, with its device variants — mirrors the landing page's
+// "one card per provider, Mobile / Desktop inside" layout.
+const PROVIDERS = [
+  { name: 'Gmail',
+    mobile:  { subj: { safe: 43, max: 50 }, prev: { safe: 40, max: 55 },
+               inbox: { combined: true,  subjMax: 43, combinedMax: 55 } },
+    desktop: { subj: { safe: 70, max: 88 }, prev: { safe: 90, max: 120 },
+               inbox: { combined: true,  subjMax: 70, combinedMax: 100 } } },
+  { name: 'Apple Mail',
+    mobile:  { subj: { safe: 44, max: 54 }, prev: { safe: 44, max: 58 },
+               inbox: { combined: false, subjMax: 44, prevMax: 44 } },
+    desktop: { subj: { safe: 65, max: 85 }, prev: { safe: 60, max: 80 },
+               inbox: { combined: false, subjMax: 65, prevMax: 60 } } },
+  { name: 'Outlook',
+    mobile:  { subj: { safe: 46, max: 52 }, prev: { safe: 38, max: 52 },
+               inbox: { combined: false, subjMax: 46, prevMax: 38 } },
+    desktop: { subj: { safe: 46, max: 53 }, prev: { safe: 38, max: 58 },
+               inbox: { combined: false, subjMax: 46, prevMax: 38 } } },
+  { name: 'Yahoo Mail',
+    mobile:  { subj: { safe: 42, max: 48 }, prev: { safe: 42, max: 58 },
+               inbox: { combined: false, subjMax: 42, prevMax: 42 } } },
 ];
 
 // ── Width-aware sizing ───────────────────────────────────────────────────────
@@ -84,16 +83,16 @@ function badgeHtml(status) {
   return '<span class="status-badge badge-' + status + '">' + labels[status] + '</span>';
 }
 
-function inboxMockHtml(c, sender, subject, preview) {
+function inboxMockHtml(name, cfg, sender, subject, preview) {
   const sn = esc(sender || 'Your Brand');
-  const ix = c.inbox;
+  const ix = cfg.inbox;
 
   if (ix.combined) {
     // Gmail: "Subject — Preview" on one line
-    const st = truncEff(subject, ix.subjMax, c.name);
-    const sepEff = effLen(' — ', c.name);
-    const rem = Math.max(0, ix.combinedMax - effLen(st.vis, c.name) - sepEff);
-    const pt  = truncEff(preview, rem, c.name);
+    const st = truncEff(subject, ix.subjMax, name);
+    const sepEff = effLen(' — ', name);
+    const rem = Math.max(0, ix.combinedMax - effLen(st.vis, name) - sepEff);
+    const pt  = truncEff(preview, rem, name);
     return '<div class="inbox-mock">' +
       '<div class="mock-sender">' + sn + '</div>' +
       '<div class="mock-line">' +
@@ -104,14 +103,32 @@ function inboxMockHtml(c, sender, subject, preview) {
     '</div>';
   } else {
     // Apple / Outlook / Yahoo: two separate lines
-    const st = truncEff(subject, ix.subjMax, c.name);
-    const pt = truncEff(preview,  ix.prevMax, c.name);
+    const st = truncEff(subject, ix.subjMax, name);
+    const pt = truncEff(preview,  ix.prevMax, name);
     return '<div class="inbox-mock">' +
       '<div class="mock-sender">' + sn + '</div>' +
       '<div class="mock-line mock-subject-line">' + esc(st.vis) + (st.cut ? '<span class="mock-cut">…</span>' : '') + '</div>' +
-      '<div class="mock-line mock-preview-line">' + esc(pt.vis) + (pt.cut ? '<span class="mock-cut">…</span>' : '') + '</div>' +
+      (preview ? '<div class="mock-line mock-preview-line">' + esc(pt.vis) + (pt.cut ? '<span class="mock-cut">…</span>' : '') + '</div>' : '') +
     '</div>';
   }
+}
+
+// One Mobile/Desktop section inside a provider card.
+function deviceSection(name, label, cfg, sender, subject, preview) {
+  const sst = statusOf(effLen(subject, name), cfg.subj.safe, cfg.subj.max);
+  const pst = statusOf(effLen(preview, name), cfg.prev.safe, cfg.prev.max);
+  return '<div class="device-col">' +
+    '<div class="device-label">' + label + '</div>' +
+    inboxMockHtml(name, cfg, sender, subject, preview) +
+    '<div class="status-rows">' +
+      '<div class="status-row">' +
+        '<span class="status-field">Subject line</span>' + badgeHtml(sst) +
+      '</div>' +
+      '<div class="status-row">' +
+        '<span class="status-field">Preview text</span>' + badgeHtml(pst) +
+      '</div>' +
+    '</div>' +
+  '</div>';
 }
 
 function render(sender, subject, preview) {
@@ -122,26 +139,13 @@ function render(sender, subject, preview) {
   }
 
   let html = '';
-  for (const c of CLIENTS) {
-    const sst = statusOf(effLen(subject, c.name), c.subj.safe, c.subj.max);
-    const pst = statusOf(effLen(preview, c.name), c.prev.safe, c.prev.max);
-    const dc  = c.device === 'mobile' ? 'device-mobile' : 'device-desktop';
-    const dl  = c.device === 'mobile' ? 'Mobile' : 'Desktop';
-
+  for (const p of PROVIDERS) {
     html += '<div class="client-card">' +
       '<div class="client-card-header">' +
-        '<span class="client-card-name">' + c.name + '</span>' +
-        '<span class="device-badge ' + dc + '">' + dl + '</span>' +
+        '<span class="client-card-name">' + p.name + '</span>' +
       '</div>' +
-      inboxMockHtml(c, sender, subject, preview) +
-      '<div class="status-rows">' +
-        '<div class="status-row">' +
-          '<span class="status-field">Subject line</span>' + badgeHtml(sst) +
-        '</div>' +
-        '<div class="status-row">' +
-          '<span class="status-field">Preview text</span>' + badgeHtml(pst) +
-        '</div>' +
-      '</div>' +
+      (p.mobile  ? deviceSection(p.name, 'Mobile',  p.mobile,  sender, subject, preview) : '') +
+      (p.desktop ? deviceSection(p.name, 'Desktop', p.desktop, sender, subject, preview) : '') +
     '</div>';
   }
 
@@ -153,6 +157,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const inpP = document.getElementById('inp-preview');
   const inpSender = document.getElementById('sender-input');
   const hint = document.getElementById('paste-hint');
+
+  // Auto-grow the subject/preview boxes as you type — up to ~3x the base height,
+  // then scroll. Shrinks back as text is removed. Matches the landing page.
+  const GROW_MAX = 150;
+  function autoGrow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, GROW_MAX) + 'px'; }
 
   function update() {
     document.getElementById('cc-s').textContent = rlen(inpS.value);
@@ -168,12 +177,13 @@ document.addEventListener('DOMContentLoaded', function() {
         inpS.value = response.text.trim();
         hint.textContent = '✓ Auto-filled from your selection';
         hint.classList.add('selected');
+        autoGrow(inpS);
         update();
       }
     });
   });
 
-  inpS.addEventListener('input', update);
-  inpP.addEventListener('input', update);
+  inpS.addEventListener('input', function () { autoGrow(inpS); update(); });
+  inpP.addEventListener('input', function () { autoGrow(inpP); update(); });
   inpSender.addEventListener('input', update);
 });
