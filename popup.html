@@ -46,7 +46,8 @@ body {
 textarea {
   width: 100%; border: 2px solid #15121f; border-radius: 8px;
   padding: 6px 9px; font-size: 12px; font-family: inherit;
-  resize: none; height: 52px; outline: none; color: #15121f; line-height: 1.4;
+  resize: none; height: 52px; min-height: 52px; max-height: 150px; overflow-y: auto;
+  outline: none; color: #15121f; line-height: 1.4;
 }
 textarea:focus { border-color: #FF3FA4; box-shadow: 2px 2px 0 #15121f; }
 textarea::placeholder { color: #c2b8d6; }
@@ -60,22 +61,24 @@ textarea::placeholder { color: #c2b8d6; }
 
 .client-card {
   background: white; border: 2px solid #15121f; border-radius: 10px;
-  overflow: hidden;
+  overflow: hidden; box-shadow: 3px 3px 0 #15121f;
 }
 .client-card-header {
-  padding: 8px 12px 6px;
+  padding: 9px 12px;
   border-bottom: 2px solid #15121f;
-  display: flex; align-items: center; gap: 6px;
 }
-.client-card-name { font-size: 12px; font-weight: 700; color: #15121f; }
-.device-badge { font-size: 9px; padding: 2px 7px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; font-family: 'JetBrains Mono', monospace; border: 1.5px solid #15121f; }
-.device-mobile { background: #00E5FF; color: #15121f; }
-.device-desktop { background: #FFE347; color: #15121f; }
+.client-card-name { font-size: 13px; font-weight: 700; color: #15121f; }
+
+/* Device sections — Mobile / Desktop stacked, since the popup is only 400px
+   wide (same as the landing page's narrow layout) */
+.device-col { padding: 10px 12px; min-width: 0; }
+.device-col + .device-col { border-top: 2px solid #15121f; }
+.device-label { font-size: 10px; font-weight: 700; color: #6b5b8a; text-transform: uppercase; letter-spacing: .06em; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
 
 /* Inbox mock inside card */
 .inbox-mock {
-  padding: 7px 12px 6px;
-  border-bottom: 2px solid #f0f2f5;
+  padding-bottom: 8px; margin-bottom: 8px; min-height: 42px;
+  border-bottom: 2px solid #efe9f6;
 }
 .mock-sender { font-size: 12px; font-weight: 700; color: #202124; margin-bottom: 2px; }
 .mock-line { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -87,14 +90,14 @@ textarea::placeholder { color: #c2b8d6; }
 .mock-preview-line { color: #5f6368; }
 
 /* Status rows */
-.status-rows { padding: 7px 12px 9px; display: flex; flex-direction: column; gap: 5px; }
+.status-rows { display: flex; flex-direction: column; gap: 5px; }
 .status-row { display: flex; align-items: center; justify-content: space-between; }
-.status-field { font-size: 11px; color: #6b5b8a; font-family: 'JetBrains Mono', monospace; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.status-field { font-size: 11px; color: #6b5b8a; font-weight: 500; }
 .status-badge {
   font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
   border: 1.5px solid #15121f; font-family: 'JetBrains Mono', monospace;
 }
-.badge-green { background: #2ECC71; color: #fff; }
+.badge-green { background: #2ECC71; color: #15121f; }
 .badge-orange { background: #FFE347; color: #15121f; }
 .badge-red { background: #FB5124; color: #fff; }
 
