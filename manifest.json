@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Subject Line Checker",
+  "name": "Subject Line Checker — Email Preview & Preheader Tester",
   "version": "1.2",
-  "description": "Check subject line & preview text truncation across Gmail, Apple Mail, Outlook and Yahoo before you send.",
+  "description": "Preview how your subject line and preheader get cut in Gmail, Apple Mail, Outlook and Yahoo — before you hit send.",
   "permissions": [
     "activeTab"
   ],
